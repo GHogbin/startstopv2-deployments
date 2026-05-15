@@ -42,7 +42,7 @@
     },
     "workspaceRegion": {
       "type": "string",
-      "defaultValue": "",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "The region where the Log Analytics workspace for Start/Stop will be located."
       }

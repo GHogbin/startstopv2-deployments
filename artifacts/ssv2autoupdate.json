@@ -17,8 +17,9 @@
     },
     "applicationInsightsRegion": {
       "type": "string",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "The region where the Application Insights instance for Start/Stop Analytics will be located."
+        "description": "Region for Application Insights. Defaults to the resource group location."
       }
     },
     "storageAccountName": {
@@ -37,7 +38,7 @@
     },
     "workspaceRegion": {
       "type": "string",
-      "defaultValue": "",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "The region where the Log Analytics workspace for Start/Stop will be located."
       }
