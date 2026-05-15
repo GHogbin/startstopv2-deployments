@@ -63,7 +63,7 @@
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-05-01",
+      "apiVersion": "2021-04-01",
       "name": "SSV2_AutomationUpdateGov",
       "resourceGroup": "[variables('resourceGroupName')]",
       "dependsOn": [],
@@ -100,7 +100,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-05-01",
+      "apiVersion": "2021-04-01",
       "name": "SSV2_AzDashboardUpdateGov",
       "resourceGroup": "[variables('resourceGroupName')]",
       "dependsOn": [
