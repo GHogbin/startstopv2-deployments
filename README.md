@@ -6,6 +6,72 @@ V2 User Guide: https://docs.microsoft.com/azure/azure-functions/start-stop-vms/o
 
 **Note:** Before you deploy this solution into your Azure subscription, please make sure you have **_owner_** permission at the subscription level.
 
+---
+
+# Deploying this fork (managed identity / Flex Consumption)
+
+This fork has been modified so the Function App uses **system-assigned managed identity** for all storage access (no shared keys) and runs on a **Flex Consumption (FC1) Linux** plan. Because the marketplace "Deploy to Azure" buttons below pin to the upstream `microsoft/startstopv2-deployments` repo, use the PowerShell script in this fork instead.
+
+## Prerequisites
+
+- PowerShell 7+
+- [Azure CLI](https://aka.ms/installazurecliwindows) 2.70.0 or newer
+- **Owner** permission on the target subscription (required to create role assignments)
+- A region that supports Flex Consumption (e.g. `swedencentral`, `eastus`, `eastus2`, `northeurope`, `uksouth`)
+
+## Quick start
+
+```powershell
+# 1. Sign in
+az login
+az account set --subscription "<your-subscription-id>"
+
+# 2. Clone this fork
+git clone https://github.com/GHogbin/startstopv2-deployments.git
+cd startstopv2-deployments
+
+# 3. Run the deployment script
+./deploy.ps1 `
+    -ResourceGroupName "rg-startstop-v2" `
+    -Location "swedencentral" `
+    -AlertEmail "you@example.com"
+```
+
+## What `deploy.ps1` does
+
+1. Verifies Azure CLI and authentication context
+2. Generates unique names for the Function App, storage account, App Insights, and Log Analytics workspace
+3. Creates the resource group
+4. Deploys [`artifacts/nestedtemplates/AutomationUpdate.json`](artifacts/nestedtemplates/AutomationUpdate.json) — Flex Consumption Function App + storage + App Insights + workspace, with a system-assigned managed identity granted four RBAC roles (Storage Blob Data Owner, Storage Queue Data Contributor, Storage Table Data Contributor, Storage File Data Privileged Contributor)
+5. Deploys [`artifacts/nestedtemplates/AzDashboard.json`](artifacts/nestedtemplates/AzDashboard.json) — operations dashboard
+6. Downloads `StartStopV2.zip` from upstream releases and pushes it via `az functionapp deployment source config-zip`
+7. Deploys [`artifacts/nestedtemplates/LogicApps.json`](artifacts/nestedtemplates/LogicApps.json) — five scheduler workflows (created in **Disabled** state so you can edit the target resource groups before enabling)
+8. Deploys [`artifacts/nestedtemplates/AlertEmail.json`](artifacts/nestedtemplates/AlertEmail.json) — action group + three modernized log search alerts (`scheduledQueryRules` 2023-03-15-preview)
+
+## Script parameters
+
+| Parameter | Default | Notes |
+| --- | --- | --- |
+| `ResourceGroupName` | `rg-startstop-v2` | Created if it does not exist |
+| `Location` | `eastus` | Must support Flex Consumption FC1 |
+| `FunctionAppNamePrefix` | `ssv2func` | Random 4-digit suffix appended |
+| `StorageAccountPrefix` | `ssv2stor` | Random 6-digit suffix appended (lower-cased, max 24 chars) |
+| `AlertEmail` | *(empty)* | If set, used as the action-group email recipient |
+
+## Post-deployment steps
+
+1. **Enable the Logic App schedulers.** They are deployed disabled with placeholder `targetResourceGroups`. Open each `ststv2_vms_*` Logic App, set the resource groups your VMs live in, then enable.
+2. **(Optional) Multi-subscription support.** Grant the Function App's managed identity the **Virtual Machine Contributor** role on any additional subscriptions you want it to manage (use the principal ID printed at the end of the script, not the function name).
+3. **Verify alerts.** Confirm `StartStopV2_VM_Notification` action group has the correct email.
+
+## Notes on this fork
+
+- Templates `AutomationUpdate.json` and `AutomationUpdateff.json` (Global + USGov non-AZ) have been converted to Flex Consumption with managed identity. The `*Az.json` Premium variants currently retain the Premium plan with managed identity changes only.
+- `StartStopV2.zip` is intentionally **gitignored** — it is downloaded fresh on each deployment.
+- The marketplace and "Deploy to Azure" buttons in the sections below target the **upstream** Microsoft repo and will install the legacy shared-key version. Use `deploy.ps1` from this fork instead.
+
+---
+
 # Global Azure
 
  By default, StartStopV2 is selected in the Plan drop-down and this template deploys a Function App Consumption plan and a locally redundant Storage account as part of the solution. If you select StartStopV2-AZ in the Plan drop-down, the template deploys an availability zone-enabled Function App Elastic Premium plan running on 3 instances minimim instances and a zone-redundant Storage account as part of the solution.
