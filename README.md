@@ -89,6 +89,85 @@ The Logic Apps are deployed in **Disabled** state with `targetResourceGroups` se
 3. Adjust the schedule (default times are Pacific 06:00 / 18:30, AutoStop every 8h).
 4. Enable the workflow.
 
+### Changing start / stop times
+
+The five Logic Apps deployed by [`LogicApps.json`](artifacts/nestedtemplates/LogicApps.json) drive when VMs start and stop. The defaults are:
+
+| Logic App | Default schedule | Action |
+| --- | --- | --- |
+| `ststv2_vms_Scheduled_start` | Daily 06:00 | Start VMs in `targetResourceGroups` |
+| `ststv2_vms_Scheduled_stop` | Daily 18:30 | Stop VMs in `targetResourceGroups` |
+| `ststv2_vms_Sequenced_start` | Daily 06:00 | Start VMs honouring sequence tags |
+| `ststv2_vms_Sequenced_stop` | Daily 18:30 | Stop VMs honouring sequence tags |
+| `ststv2_vms_AutoStop` | Every 8 hours | Evaluate auto-stop alert rules |
+
+The time zone for all schedules defaults to `Pacific Standard Time`.
+
+#### Option 1 — change in the portal (per workflow)
+
+1. Open the Logic App, select **Logic app designer**.
+2. Click the **Recurrence** trigger.
+3. Edit **Frequency**, **Interval**, **Time zone**, **At these hours**, and **At these minutes**.
+4. **Save**.
+
+#### Option 2 — change in code view (raw JSON)
+
+In **Logic app code view**, edit the `triggers.Recurrence.recurrence` block:
+
+```json
+"Recurrence": {
+  "type": "Recurrence",
+  "recurrence": {
+    "frequency": "Day",
+    "interval": 1,
+    "schedule": { "hours": ["7"], "minutes": [30] },
+    "timeZone": "GMT Standard Time"
+  }
+}
+```
+
+- `frequency`: `Minute`, `Hour`, `Day`, `Week`, `Month`
+- `interval`: integer count of `frequency` units between runs (e.g. `interval: 8` + `frequency: Hour` = every 8 hours, as used by `ststv2_vms_AutoStop`)
+- `schedule.hours`: array of 0–23 (24-hour clock)
+- `schedule.minutes`: array of 0–59
+- `schedule.weekDays`: optional array, e.g. `["Monday","Tuesday","Wednesday","Thursday","Friday"]` to skip weekends
+- `timeZone`: any Windows time-zone ID (`Get-TimeZone -ListAvailable | Select Id`), e.g. `Pacific Standard Time`, `GMT Standard Time`, `W. Europe Standard Time`, `Eastern Standard Time`, `AUS Eastern Standard Time`
+
+Example — weekdays only, start 07:30 London time:
+
+```json
+"recurrence": {
+  "frequency": "Week",
+  "interval": 1,
+  "schedule": {
+    "weekDays": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+    "hours": ["7"],
+    "minutes": [30]
+  },
+  "timeZone": "GMT Standard Time"
+}
+```
+
+#### Option 3 — change defaults for everyone (template)
+
+Edit [`artifacts/nestedtemplates/LogicApps.json`](artifacts/nestedtemplates/LogicApps.json) directly and re-deploy. Each workflow has its own `triggers.Recurrence.recurrence` block. To change the default time zone for all five at once, override the `scheduleTimeZone` parameter when re-running `deploy.ps1`, or edit its default value in the template.
+
+```powershell
+az deployment group create `
+    --resource-group rg-startstop-v2 `
+    --template-file artifacts/nestedtemplates/LogicApps.json `
+    --parameters functionAppName=<functionAppName> `
+                 scheduleTimeZone="GMT Standard Time" `
+                 logicAppState=Enabled `
+                 targetResourceGroups='["/subscriptions/<sub>/resourceGroups/<rg>"]'
+```
+
+> Re-deploying the template **overwrites** any changes made in the portal. Treat the template as the source of truth, or stop re-deploying once you've configured per-workflow.
+
+#### Option 4 — disable a schedule entirely
+
+If you only need start (or only need stop), open the unwanted Logic App and set its state to **Disabled**, or remove that resource block from `LogicApps.json` before re-deploying.
+
 ### Multi-subscription support
 
 To let the Function App act on VMs in additional subscriptions, grant its **managed identity** (not the function name) the `Virtual Machine Contributor` role on each target subscription or resource group. The principal ID is printed at the end of `deploy.ps1`, or:
