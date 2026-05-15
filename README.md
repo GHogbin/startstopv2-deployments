@@ -68,7 +68,7 @@ cd startstopv2-deployments
 
 - Templates `AutomationUpdate.json` and `AutomationUpdateff.json` (Global + USGov non-AZ) have been converted to Flex Consumption with managed identity. The `*Az.json` Premium variants currently retain the Premium plan with managed identity changes only.
 - `StartStopV2.zip` is intentionally **gitignored** — it is downloaded fresh on each deployment.
-- The marketplace and "Deploy to Azure" buttons in the sections below target the **upstream** Microsoft repo and will install the legacy shared-key version. Use `deploy.ps1` from this fork instead.
+- The "Deploy to Azure" buttons in the **Get Latest Version** sections below have been repointed to this fork, so they will install the managed-identity / Flex Consumption version. The two top-of-section marketplace badges (linking to `portal.azure.com/#create/microsoftcorporation1620879115842...`) still go through the Microsoft marketplace listing and will install the legacy shared-key version — use `deploy.ps1` or the Get Latest Version buttons instead.
 
 ---
 
@@ -90,13 +90,13 @@ cd startstopv2-deployments
 
  If you originally deployed the solution using the default Plan selection, a Function App Consumption plan and a locally redundant Storage account are deployed. In this case, use this template.
  
- [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdate.json)
+ [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FGHogbin%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdate.json)
 
 #### Availability zone-based solution
 
  If you originally deployed the solution using the **StartStopV2-AZ** Plan selection, a Function App Elastic Premium plan and a zone-redundant Storage account are deployed. In this case, use this template.
 
- [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateAz.json)
+ [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FGHogbin%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateAz.json)
 
 <p>
 
@@ -118,13 +118,13 @@ cd startstopv2-deployments
 
  If you originally deployed the solution using the default Plan selection, a Function App Consumption plan and a locally redundant Storage account are deployed. In this case, use this template.
 
- [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.us/?microsoft_azure_marketplace_itemhidekey=cuidCustomDeployment#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateff.json)
+ [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.us/?microsoft_azure_marketplace_itemhidekey=cuidCustomDeployment#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FGHogbin%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateff.json)
 
 #### Availability zone-based solution
 
  If you originally deployed the solution using the **StartStopV2-AZ** Plan selection, a Function App Elastic Premium plan and a zone-redundant Storage account are deployed. In this case, use this template.
 
- [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.us/?microsoft_azure_marketplace_itemhidekey=cuidCustomDeployment#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateffAz.json)
+ [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.us/?microsoft_azure_marketplace_itemhidekey=cuidCustomDeployment#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FGHogbin%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateffAz.json)
 
 <p>
 
