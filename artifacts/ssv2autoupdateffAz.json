@@ -46,13 +46,49 @@
       "metadata": {
         "description": "The region where the Log Analytics workspace for Start/Stop will be located."
       }
+    },
+    "alertEmail": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Email address to receive Start/Stop V2 alerts. Comma-separate multiple addresses."
+      }
+    },
+    "targetResourceGroups": {
+      "type": "array",
+      "defaultValue": [
+        "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg1"
+      ],
+      "metadata": {
+        "description": "Resource group resource IDs whose VMs the Logic App schedulers will start/stop. Edit each Logic App after deploy to set real values, then enable."
+      }
+    },
+    "scheduleTimeZone": {
+      "type": "string",
+      "defaultValue": "Pacific Standard Time",
+      "metadata": {
+        "description": "Time zone used by the Logic App scheduler triggers (Windows time-zone ID, e.g. 'GMT Standard Time')."
+      }
+    },
+    "logicAppState": {
+      "type": "string",
+      "defaultValue": "Disabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Initial state of the deployed Logic Apps. Keep Disabled until you've set targetResourceGroups and adjusted schedules."
+      }
     }
   },
   "variables": {
     "_artifactsLocation": "https://raw.githubusercontent.com/GHogbin/startstopv2-deployments/main/artifacts",
     "nestedTemplates": {
       "StartStopV2_Automationgov": "[concat(variables('_artifactsLocation'), '/nestedtemplates/AutomationUpdateffAz.json')]",
-      "StartStopV2_AzDashboardgov": "[concat(variables('_artifactsLocation'), '/nestedtemplates/AzDashboard.json')]"
+      "StartStopV2_AzDashboardgov": "[concat(variables('_artifactsLocation'), '/nestedtemplates/AzDashboard.json')]",
+      "StartStopV2_LogicApps": "[concat(variables('_artifactsLocation'), '/nestedtemplates/LogicApps.json')]",
+      "StartStopV2_AlertEmail": "[concat(variables('_artifactsLocation'), '/nestedtemplates/AlertEmail.json')]"
     },
     "resourceGroupName": "[resourceGroup().name]",
     "resourceGroupRegion": "[resourceGroup().location]",
@@ -113,6 +149,66 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
+          "appInsightName": {
+            "value": "[parameters('applicationInsightsName')]"
+          },
+          "appInsightRegion": {
+            "value": "[parameters('applicationInsightsRegion')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2021-04-01",
+      "name": "SSV2_LogicAppsGov",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "dependsOn": [
+        "SSV2_AutomationUpdateGov"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('nestedTemplates').StartStopV2_LogicApps]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "functionAppName": {
+            "value": "[parameters('azureFunctionAppName')]"
+          },
+          "location": {
+            "value": "[variables('resourceGroupRegion')]"
+          },
+          "scheduleTimeZone": {
+            "value": "[parameters('scheduleTimeZone')]"
+          },
+          "logicAppState": {
+            "value": "[parameters('logicAppState')]"
+          },
+          "targetResourceGroups": {
+            "value": "[parameters('targetResourceGroups')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2021-04-01",
+      "name": "SSV2_AlertEmailGov",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "dependsOn": [
+        "SSV2_AutomationUpdateGov"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('nestedTemplates').StartStopV2_AlertEmail]",
+          "contentVersion": "2.0.0.0"
+        },
+        "parameters": {
+          "Email Addresses": {
+            "value": "[if(empty(parameters('alertEmail')), 'REPLACE_ME@example.com', parameters('alertEmail'))]"
+          },
           "appInsightName": {
             "value": "[parameters('applicationInsightsName')]"
           },
