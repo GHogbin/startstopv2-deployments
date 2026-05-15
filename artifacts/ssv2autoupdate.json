@@ -18,7 +18,7 @@
     "applicationInsightsRegion": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
-            "allowedValues": [
+      "allowedValues": [
         "australiacentral",
         "australiaeast",
         "australiasoutheast",
@@ -59,7 +59,7 @@
         "westus2",
         "westus3"
       ],
-"metadata": {
+      "metadata": {
         "description": "Region for Application Insights. Defaults to the resource group location."
       }
     },
@@ -80,7 +80,7 @@
     "workspaceRegion": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
-            "allowedValues": [
+      "allowedValues": [
         "australiacentral",
         "australiaeast",
         "australiasoutheast",
@@ -121,7 +121,7 @@
         "westus2",
         "westus3"
       ],
-"metadata": {
+      "metadata": {
         "description": "The region where the Log Analytics workspace for Start/Stop will be located."
       }
     },
@@ -132,26 +132,73 @@
         "description": "Optional. Email address to receive Start/Stop V2 alerts. Comma-separate multiple addresses. Leave blank to skip alert deployment recipient (action group is still created with placeholder)."
       }
     },
-    "targetResourceGroups": {
-      "type": "array",
-      "defaultValue": [
-        "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg1"
-      ],
-      "metadata": {
-        "description": "Resource group resource IDs whose VMs the Logic App schedulers will start/stop. Edit each Logic App after deploy to set real values, then enable."
-      }
-    },
     "scheduleTimeZone": {
       "type": "string",
       "defaultValue": "Pacific Standard Time",
       "metadata": {
         "description": "Time zone used by the Logic App scheduler triggers (Windows time-zone ID, e.g. 'GMT Standard Time')."
-      }
+      },
+      "allowedValues": [
+        "Dateline Standard Time",
+        "UTC-11",
+        "Aleutian Standard Time",
+        "Hawaiian Standard Time",
+        "Alaskan Standard Time",
+        "Pacific Standard Time",
+        "Mountain Standard Time",
+        "Central Standard Time",
+        "Eastern Standard Time",
+        "Atlantic Standard Time",
+        "Newfoundland Standard Time",
+        "E. South America Standard Time",
+        "Argentina Standard Time",
+        "UTC-02",
+        "Azores Standard Time",
+        "GMT Standard Time",
+        "Greenwich Standard Time",
+        "UTC",
+        "W. Europe Standard Time",
+        "Central Europe Standard Time",
+        "Romance Standard Time",
+        "Central European Standard Time",
+        "E. Europe Standard Time",
+        "Egypt Standard Time",
+        "South Africa Standard Time",
+        "FLE Standard Time",
+        "Turkey Standard Time",
+        "Israel Standard Time",
+        "Arabic Standard Time",
+        "Arab Standard Time",
+        "Russian Standard Time",
+        "Iran Standard Time",
+        "Arabian Standard Time",
+        "Azerbaijan Standard Time",
+        "Pakistan Standard Time",
+        "India Standard Time",
+        "Sri Lanka Standard Time",
+        "Bangladesh Standard Time",
+        "SE Asia Standard Time",
+        "China Standard Time",
+        "Singapore Standard Time",
+        "W. Australia Standard Time",
+        "Taipei Standard Time",
+        "Tokyo Standard Time",
+        "Korea Standard Time",
+        "Cen. Australia Standard Time",
+        "AUS Central Standard Time",
+        "AUS Eastern Standard Time",
+        "Tasmania Standard Time",
+        "Vladivostok Standard Time",
+        "New Zealand Standard Time"
+      ]
     },
     "logicAppState": {
       "type": "string",
       "defaultValue": "Disabled",
-      "allowedValues": ["Enabled", "Disabled"],
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
       "metadata": {
         "description": "Initial state of the deployed Logic Apps. Keep Disabled until you've set targetResourceGroups and adjusted schedules."
       }
@@ -248,11 +295,18 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
-          "functionAppName": { "value": "[parameters('azureFunctionAppName')]" },
-          "location": { "value": "[variables('resourceGroupRegion')]" },
-          "scheduleTimeZone": { "value": "[parameters('scheduleTimeZone')]" },
-          "logicAppState": { "value": "[parameters('logicAppState')]" },
-          "targetResourceGroups": { "value": "[parameters('targetResourceGroups')]" }
+          "functionAppName": {
+            "value": "[parameters('azureFunctionAppName')]"
+          },
+          "location": {
+            "value": "[variables('resourceGroupRegion')]"
+          },
+          "scheduleTimeZone": {
+            "value": "[parameters('scheduleTimeZone')]"
+          },
+          "logicAppState": {
+            "value": "[parameters('logicAppState')]"
+          }
         }
       }
     },
@@ -271,9 +325,15 @@
           "contentVersion": "2.0.0.0"
         },
         "parameters": {
-          "Email Addresses": { "value": "[if(empty(parameters('alertEmail')), 'REPLACE_ME@example.com', parameters('alertEmail'))]" },
-          "appInsightName": { "value": "[parameters('applicationInsightsName')]" },
-          "appInsightRegion": { "value": "[parameters('applicationInsightsRegion')]" }
+          "Email Addresses": {
+            "value": "[if(empty(parameters('alertEmail')), 'REPLACE_ME@example.com', parameters('alertEmail'))]"
+          },
+          "appInsightName": {
+            "value": "[parameters('applicationInsightsName')]"
+          },
+          "appInsightRegion": {
+            "value": "[parameters('applicationInsightsRegion')]"
+          }
         }
       }
     }
