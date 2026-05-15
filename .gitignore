@@ -1,0 +1,11 @@
+# Downloaded function package (rebuilt by deploy.ps1)
+StartStopV2.zip
+
+# Local parameter files that may contain secrets
+deploy-parameters.local.json
+*.parameters.local.json
+
+# Common
+.vscode/
+*.bak
+*.tmp

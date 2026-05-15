@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "azureFunctionAppName": {
+      "value": "ssv2func-<UNIQUE-SUFFIX>"
+    },
+    "applicationInsightsName": {
+      "value": "ssv2insights-<UNIQUE-SUFFIX>"
+    },
+    "applicationInsightsRegion": {
+      "value": ""
+    },
+    "storageAccountName": {
+      "value": "ssv2stor<SHORT>"
+    },
+    "workspaceName": {
+      "value": "ssv2workspace"
+    },
+    "workspaceRegion": {
+      "value": ""
+    }
+  }
+}

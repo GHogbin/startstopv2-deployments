@@ -1,0 +1,264 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the deployed Start/Stop V2 Function App."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Region for the Logic Apps."
+      }
+    },
+    "scheduleTimeZone": {
+      "type": "string",
+      "defaultValue": "Pacific Standard Time",
+      "metadata": {
+        "description": "Time zone for the recurrence triggers (e.g. 'W. Europe Standard Time', 'GMT Standard Time')."
+      }
+    },
+    "logicAppState": {
+      "type": "string",
+      "defaultValue": "Disabled",
+      "allowedValues": ["Enabled", "Disabled"],
+      "metadata": {
+        "description": "Initial state of the Logic Apps. Keep Disabled until you've edited the schedules and target resource groups."
+      }
+    },
+    "targetResourceGroups": {
+      "type": "array",
+      "defaultValue": [
+        "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg1/"
+      ],
+      "metadata": {
+        "description": "Resource group resource IDs whose VMs will be started/stopped. Edit before enabling Logic Apps."
+      }
+    }
+  },
+  "variables": {
+    "LogicApp_Start_Scheduled": "ststv2_vms_Scheduled_start",
+    "LogicApp_Stop_Scheduled": "ststv2_vms_Scheduled_stop",
+    "LogicApp_Start_Sequenced": "ststv2_vms_Sequenced_start",
+    "LogicApp_Stop_Sequenced": "ststv2_vms_Sequenced_stop",
+    "LogicApp_AutoStop": "ststv2_vms_AutoStop",
+    "FunctionApp_Externalid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Web/sites/', parameters('functionAppName'))]",
+    "ScheduledFunctionId": "[concat(variables('FunctionApp_Externalid'), '/functions/Scheduled')]",
+    "AutoStopFunctionId": "[concat(variables('FunctionApp_Externalid'), '/functions/AutoStop')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('LogicApp_Start_Scheduled')]",
+      "location": "[parameters('location')]",
+      "tags": { "SolutionName": "StartStopV2" },
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": { "hours": ["6"], "minutes": [0] },
+                "timeZone": "[parameters('scheduleTimeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "Scheduled": {
+              "type": "Function",
+              "inputs": {
+                "body": {
+                  "Action": "start",
+                  "EnableClassic": false,
+                  "RequestScopes": { "ResourceGroups": "[parameters('targetResourceGroups')]" }
+                },
+                "function": { "id": "[variables('ScheduledFunctionId')]" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('LogicApp_Stop_Scheduled')]",
+      "location": "[parameters('location')]",
+      "tags": { "SolutionName": "StartStopV2" },
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": { "hours": ["18"], "minutes": [30] },
+                "timeZone": "[parameters('scheduleTimeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "Scheduled": {
+              "type": "Function",
+              "inputs": {
+                "body": {
+                  "Action": "stop",
+                  "EnableClassic": false,
+                  "RequestScopes": { "ResourceGroups": "[parameters('targetResourceGroups')]" }
+                },
+                "function": { "id": "[variables('ScheduledFunctionId')]" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('LogicApp_Start_Sequenced')]",
+      "location": "[parameters('location')]",
+      "tags": { "SolutionName": "StartStopV2" },
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": { "hours": ["6"], "minutes": [0] },
+                "timeZone": "[parameters('scheduleTimeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "Scheduled": {
+              "type": "Function",
+              "inputs": {
+                "body": {
+                  "Action": "start",
+                  "Sequenced": true,
+                  "RequestScopes": { "ResourceGroups": "[parameters('targetResourceGroups')]" }
+                },
+                "function": { "id": "[variables('ScheduledFunctionId')]" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('LogicApp_Stop_Sequenced')]",
+      "location": "[parameters('location')]",
+      "tags": { "SolutionName": "StartStopV2" },
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": { "hours": ["18"], "minutes": [30] },
+                "timeZone": "[parameters('scheduleTimeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "Scheduled": {
+              "type": "Function",
+              "inputs": {
+                "body": {
+                  "Action": "stop",
+                  "Sequenced": true,
+                  "RequestScopes": { "ResourceGroups": "[parameters('targetResourceGroups')]" }
+                },
+                "function": { "id": "[variables('ScheduledFunctionId')]" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('LogicApp_AutoStop')]",
+      "location": "[parameters('location')]",
+      "tags": { "SolutionName": "StartStopV2" },
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Hour",
+                "interval": 8,
+                "timeZone": "[parameters('scheduleTimeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "AutoStop": {
+              "type": "Function",
+              "inputs": {
+                "body": {
+                  "Action": "stop",
+                  "EnableClassic": false,
+                  "AutoStop_MetricName": "Percentage CPU",
+                  "AutoStop_Condition": "LessThan",
+                  "AutoStop_Description": "Auto stop for VM with low CPU",
+                  "AutoStop_Frequency": "00:05:00",
+                  "AutoStop_Severity": "2",
+                  "AutoStop_Threshold": "5",
+                  "AutoStop_TimeAggregationOperator": "Average",
+                  "AutoStop_TimeWindow": "06:00:00",
+                  "RequestScopes": { "ResourceGroups": "[parameters('targetResourceGroups')]" }
+                },
+                "function": { "id": "[variables('AutoStopFunctionId')]" }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicApps": {
+      "type": "array",
+      "value": [
+        "[variables('LogicApp_Start_Scheduled')]",
+        "[variables('LogicApp_Stop_Scheduled')]",
+        "[variables('LogicApp_Start_Sequenced')]",
+        "[variables('LogicApp_Stop_Sequenced')]",
+        "[variables('LogicApp_AutoStop')]"
+      ]
+    }
+  }
+}
