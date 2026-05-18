@@ -86,6 +86,7 @@
       "properties": {
         "supportsHttpsTrafficOnly": true,
         "allowBlobPublicAccess": false,
+        "allowSharedKeyAccess": true,
         "minimumTlsVersion": "TLS1_2",
         "networkAcls": {
           "bypass": "AzureServices",
@@ -241,18 +242,6 @@
       }
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
-      "apiVersion": "2021-09-01",
-      "name": "[concat(variables('storageAccountName'), '/default/', toLower(variables('functionAppNameStartStopV2')))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', variables('storageAccountName'), 'default')]"
-      ],
-      "properties": {
-        "shareQuota": 5120
-      }
-    },
-    {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2023-01-01",
       "name": "[variables('hostingPlanName')]",
@@ -261,18 +250,19 @@
         "SolutionName": "StartStopV2"
       },
       "sku": {
-        "name": "FC1",
-        "tier": "FlexConsumption"
+        "name": "B1",
+        "tier": "Basic"
       },
+      "kind": "app",
       "properties": {
-        "reserved": true
+        "reserved": false
       },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName'))]"
       ]
     },
     {
-      "apiVersion": "2023-01-01",
+      "apiVersion": "2023-12-01",
       "type": "Microsoft.Web/sites",
       "name": "[variables('functionAppNameStartStopV2')]",
       "location": "[resourceGroup().location]",
@@ -283,7 +273,6 @@
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', variables('storageAccountName'), 'default', 'deployments')]",
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', variables('storageAccountName'), 'default', toLower(variables('functionAppNameStartStopV2')))]",
         "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
       ],
       "identity": {
@@ -291,29 +280,12 @@
       },
       "properties": {
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
-        "functionAppConfig": {
-          "deployment": {
-            "storage": {
-              "type": "blobContainer",
-              "value": "[concat('https://', variables('storageAccountName'), '.blob.core.windows.net/deployments')]",
-              "authentication": {
-                "type": "SystemAssignedIdentity"
-              }
-            }
-          },
-          "scaleAndConcurrency": {
-            "maximumInstanceCount": 100,
-            "instanceMemoryMB": 2048
-          },
-          "runtime": {
-            "name": "dotnet-isolated",
-            "version": "8.0"
-          }
-        },
         "httpsOnly": true,
         "clientCertEnabled": true,
         "clientCertMode": "Optional",
         "siteConfig": {
+          "netFrameworkVersion": "v8.0",
+          "alwaysOn": true,
           "appSettings": [
             {
               "name": "AzureWebJobsDisableHomepage",
@@ -326,6 +298,10 @@
             {
               "name": "AzureWebJobsStorage__credential",
               "value": "managedidentity"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "dotnet-isolated"
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
