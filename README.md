@@ -2,7 +2,9 @@
 
 The Start/Stop VMs during off-hours feature starts or stops enabled Azure VMs on user-defined schedules, surfaces telemetry through Application Insights, and sends optional emails via action groups. It works with Azure Resource Manager VMs.
 
-This **fork** of [`microsoft/startstopv2-deployments`](https://github.com/microsoft/startstopv2-deployments) replaces all storage shared-key access with **system-assigned managed identity** and runs the Function App on **Flex Consumption (FC1) Linux**. It is intended to be deployed via the included `deploy.ps1` script (or the "Deploy to Azure" buttons further down, which point to the templates in this fork).
+This **fork** of [`microsoft/startstopv2-deployments`](https://github.com/microsoft/startstopv2-deployments) replaces all storage shared-key access with **system-assigned managed identity**. Both the infrastructure (storage account with `allowSharedKeyAccess: false` + RBAC role assignments) and the function code itself have been modified so all queue and table operations go through `DefaultAzureCredential` instead of connection strings.
+
+The Function App runs on a **Windows B1 Basic** plan with the .NET 8 isolated worker runtime. The rebuilt function package (`StartStopV2-MI.zip`) is committed to this repo at the root and is deployed in place of the upstream zip. It is intended to be deployed via the included `deploy.ps1` script (or the "Deploy to Azure" buttons further down, which point to the templates in this fork).
 
 Upstream user guide: https://learn.microsoft.com/azure/azure-functions/start-stop-vms/overview
 
@@ -16,8 +18,8 @@ Upstream user guide: https://learn.microsoft.com/azure/azure-functions/start-sto
 
 - PowerShell 7+
 - [Azure CLI](https://aka.ms/installazurecliwindows) 2.70.0 or newer
-- Owner role on the target subscription
-- A region that supports **Flex Consumption FC1** (e.g. `swedencentral`, `eastus`, `eastus2`, `northeurope`, `uksouth`)
+- Owner role on the target subscription (required to create role assignments for the managed identity)
+- Any Azure region that supports App Service Basic (B1) plans
 
 ### Run it
 
@@ -42,7 +44,7 @@ cd startstopv2-deployments
 | Parameter | Default | Notes |
 | --- | --- | --- |
 | `ResourceGroupName` | `rg-startstop-v2` | Created if it does not exist |
-| `Location` | `eastus` | Must support Flex Consumption FC1 |
+| `Location` | `eastus` | Any region with App Service Basic plans |
 | `FunctionAppNamePrefix` | `ssv2func` | Random 4-digit suffix appended |
 | `StorageAccountPrefix` | `ssv2stor` | Random 6-digit suffix appended (lower-cased, max 24 chars) |
 | `AlertEmail` | *(empty)* | Recipient on the alert action group |
@@ -50,13 +52,18 @@ cd startstopv2-deployments
 ### What the script deploys
 
 1. Resource group (if missing)
-2. [`artifacts/nestedtemplates/AutomationUpdate.json`](artifacts/nestedtemplates/AutomationUpdate.json) — Flex Consumption Function App, storage account, App Insights, Log Analytics workspace, and a system-assigned managed identity granted four data-plane RBAC roles on the storage account:
+2. [`artifacts/nestedtemplates/AutomationUpdate.json`](artifacts/nestedtemplates/AutomationUpdate.json) — Windows B1 App Service plan, .NET 8 isolated Function App, storage account (`allowSharedKeyAccess: false`), App Insights, Log Analytics workspace, and a system-assigned managed identity granted four data-plane RBAC roles on the storage account:
    - Storage Blob Data Owner
    - Storage Queue Data Contributor
    - Storage Table Data Contributor
    - Storage File Data Privileged Contributor
 3. [`artifacts/nestedtemplates/AzDashboard.json`](artifacts/nestedtemplates/AzDashboard.json) — operations dashboard
-4. Function code — downloads `StartStopV2.zip` from the upstream release and pushes it via `az functionapp deployment source config-zip`
+4. Function code — by default `deploy.ps1` still downloads the upstream `StartStopV2.zip`. To deploy the MI-aware build that ships with this fork, push [`StartStopV2-MI.zip`](StartStopV2-MI.zip) after the script finishes:
+
+   ```powershell
+   az functionapp deployment source config-zip `
+       -g rg-startstop-v2 -n <functionAppName> --src StartStopV2-MI.zip
+   ```
 5. [`artifacts/nestedtemplates/LogicApps.json`](artifacts/nestedtemplates/LogicApps.json) — five scheduler workflows (`Scheduled_start`, `Scheduled_stop`, `Sequenced_start`, `Sequenced_stop`, `AutoStop`). They are created **Disabled** with placeholder target resource groups so you can configure them before they fire.
 6. [`artifacts/nestedtemplates/AlertEmail.json`](artifacts/nestedtemplates/AlertEmail.json) — action group and three log search alerts using the modern `scheduledQueryRules` 2023-03-15-preview API
 
@@ -64,7 +71,7 @@ cd startstopv2-deployments
 
 ## Deploy to Azure (portal)
 
-If you would rather deploy from the portal, the buttons below open the wrapper templates from this fork. They install the same managed-identity / Flex Consumption configuration as `deploy.ps1` (minus the function code zip and Logic Apps — run those separately or use `deploy.ps1`).
+If you would rather deploy from the portal, the buttons below open the wrapper templates from this fork. They install the same managed-identity / Windows B1 configuration as `deploy.ps1` (minus the function code zip and Logic Apps — run those separately or use `deploy.ps1`).
 
 ### Global Azure
 
@@ -74,7 +81,7 @@ If you would rather deploy from the portal, the buttons below open the wrapper t
 
 [![Deploy to Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.us/?microsoft_azure_marketplace_itemhidekey=cuidCustomDeployment#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FGHogbin%2Fstartstopv2-deployments%2Fmain%2Fartifacts%2Fssv2autoupdateff.json)
 
-> The Premium availability-zone variants (`ssv2autoupdateAz.json` / `ssv2autoupdateffAz.json`) are still present in `artifacts/` but have **not** been converted to Flex Consumption. They have the managed-identity changes only and are not recommended unless you specifically need an Elastic Premium plan.
+> The Premium availability-zone variants (`ssv2autoupdateAz.json` / `ssv2autoupdateffAz.json`) are still present in `artifacts/` but only carry the managed-identity changes — they are not recommended unless you specifically need an Elastic Premium plan.
 
 ---
 
@@ -205,12 +212,14 @@ To pick up new function code, run the `TriggerAutoUpdate` function manually or l
 
 | Area | Upstream (`microsoft/startstopv2-deployments`) | This fork |
 | --- | --- | --- |
-| Function App plan | Consumption Y1 (Windows) | Flex Consumption FC1 (Linux) |
-| Storage auth | Connection strings / shared keys | System-assigned managed identity + RBAC |
-| App settings | Colon-separated keys | Double-underscore keys (Flex Consumption requirement) |
-| Code deploy | `WEBSITE_RUN_FROM_PACKAGE` URL / MSDeploy | `functionAppConfig.deployment.storage` blob container + `config-zip` |
+| Function App plan | Consumption Y1 (Windows) | Windows B1 Basic, .NET 8 isolated worker |
+| Storage account | Shared keys allowed | `allowSharedKeyAccess: false` enforced |
+| Storage auth (host) | `AzureWebJobsStorage` connection string | `AzureWebJobsStorage__accountName` + system-assigned MI |
+| Storage auth (function code) | Connection strings in `QueueClient` / `TableServiceClient` | `DefaultAzureCredential` against `https://<account>.queue/table.core.windows.net` (rebuilt `StartStopAzureFunctions.dll`) |
+| RBAC | None | Storage Blob Data Owner + Queue/Table Data Contributor + File Data Privileged Contributor on the storage account, granted to the Function App MI |
 | Alerts | `microsoft.insights/scheduledQueryRules` 2018-04-16 | `Microsoft.Insights/scheduledQueryRules` 2023-03-15-preview (Common Alert Schema) |
 | Schedulers | Created in Function App settings via marketplace UI | Separate `LogicApps.json` template |
+| Function package | Upstream `StartStopV2.zip` | `StartStopV2-MI.zip` shipped in this repo (decompiled, patched, rebuilt) |
 
 ---
 
