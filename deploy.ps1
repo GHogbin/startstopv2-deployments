@@ -15,7 +15,10 @@ param(
     [string]$StorageAccountPrefix = "ssv2stor",
 
     [Parameter(Mandatory=$false)]
-    [string]$AlertEmail = ""
+    [string]$AlertEmail = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$ScheduleTimeZone = ""
 )
 
 # Colors for output
@@ -46,6 +49,23 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Success "✓ Logged in as: $($account.user.name)"
 Write-Success "✓ Subscription: $($account.name) ($($account.id))"
+Write-Host ""
+
+# Prompt for time zone if not supplied (used by the scheduler Logic Apps)
+if (-not $ScheduleTimeZone) {
+    Write-Info "Time zone for scheduler Logic Apps"
+    Write-Host "  Common values: 'Pacific Standard Time', 'Eastern Standard Time', 'GMT Standard Time',"
+    Write-Host "                 'W. Europe Standard Time', 'AUS Eastern Standard Time'"
+    Write-Host "  Full list:    Get-TimeZone -ListAvailable | Select Id"
+    $tzInput = Read-Host "  Time zone (press Enter for 'Pacific Standard Time')"
+    if ([string]::IsNullOrWhiteSpace($tzInput)) {
+        $ScheduleTimeZone = "Pacific Standard Time"
+    } else {
+        $ScheduleTimeZone = $tzInput.Trim()
+    }
+    Write-Host ""
+}
+Write-Success "✓ Schedule time zone: $ScheduleTimeZone"
 Write-Host ""
 
 # Generate unique names
@@ -184,6 +204,7 @@ $logicAppsResult = az deployment group create `
     --parameters `
         functionAppName=$functionAppName `
         location=$Location `
+        scheduleTimeZone="$ScheduleTimeZone" `
     --output json 2>&1
 
 if ($LASTEXITCODE -eq 0) {

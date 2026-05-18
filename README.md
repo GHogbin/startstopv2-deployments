@@ -48,6 +48,7 @@ cd startstopv2-deployments
 | `FunctionAppNamePrefix` | `ssv2func` | Random 4-digit suffix appended |
 | `StorageAccountPrefix` | `ssv2stor` | Random 6-digit suffix appended (lower-cased, max 24 chars) |
 | `AlertEmail` | *(empty)* | Recipient on the alert action group |
+| `ScheduleTimeZone` | *(prompted)* | Windows time-zone ID for Logic App recurrence triggers (e.g. `GMT Standard Time`). If omitted, the script prompts interactively and defaults to `Pacific Standard Time`. |
 
 ### What the script deploys
 
