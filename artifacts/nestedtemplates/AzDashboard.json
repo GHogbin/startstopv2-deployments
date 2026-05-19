@@ -935,24 +935,7 @@
                     }
                   ],
                   "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-                  "settings": {
-                    "content": {
-                      "options": {
-                        "chart": {
-                          "title": "Runs Succeeded — VMSS workflows",
-                          "titleKind": 1,
-                          "visualization": {
-                            "chartType": 2,
-                            "legendVisualization": {
-                              "isVisible": true,
-                              "position": 2,
-                              "hideSubtitle": false
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "settings": {}
                 }
               },
               "10": {
@@ -1047,24 +1030,7 @@
                     }
                   ],
                   "type": "Extension/HubsExtension/PartType/MonitorChartPart",
-                  "settings": {
-                    "content": {
-                      "options": {
-                        "chart": {
-                          "title": "Runs Failed — VMSS workflows",
-                          "titleKind": 1,
-                          "visualization": {
-                            "chartType": 3,
-                            "legendVisualization": {
-                              "isVisible": true,
-                              "position": 2,
-                              "hideSubtitle": false
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "settings": {}
                 }
               },
               "11": {
