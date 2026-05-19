@@ -853,7 +853,12 @@
                 "metadata": {
                   "inputs": [
                     {
+                      "name": "sharedTimeRange",
+                      "isOptional": true
+                    },
+                    {
                       "name": "options",
+                      "isOptional": true,
                       "value": {
                         "chart": {
                           "metrics": [
@@ -865,8 +870,7 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Succeeded",
-                                "resourceDisplayName": "ststv2_vmss_Scheduled_start"
+                                "displayName": "Runs Succeeded"
                               }
                             },
                             {
@@ -877,8 +881,7 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Succeeded",
-                                "resourceDisplayName": "ststv2_vmss_Scheduled_stop"
+                                "displayName": "Runs Succeeded"
                               }
                             },
                             {
@@ -889,8 +892,7 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Succeeded",
-                                "resourceDisplayName": "ststv2_vmss_Scheduled_scaleto1"
+                                "displayName": "Runs Succeeded"
                               }
                             },
                             {
@@ -901,15 +903,14 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Succeeded",
-                                "resourceDisplayName": "ststv2_vmss_AutoStop"
+                                "displayName": "Runs Succeeded"
                               }
                             }
                           ],
-                          "title": "Sum Runs Succeeded for VMSS workflows",
+                          "title": "Runs Succeeded — VMSS workflows",
                           "titleKind": 2,
                           "visualization": {
-                            "chartType": 2,
+                            "chartType": 3,
                             "legendVisualization": {
                               "isVisible": true,
                               "position": 2,
@@ -918,20 +919,10 @@
                             "axisVisualization": {
                               "x": { "isVisible": true, "axisType": 2 },
                               "y": { "isVisible": true, "axisType": 1 }
-                            },
-                            "disablePinning": true
-                          },
-                          "timespan": {
-                            "relative": { "duration": 86400000 },
-                            "showUTCTime": false,
-                            "grain": 300000
+                            }
                           }
                         }
                       }
-                    },
-                    {
-                      "name": "sharedTimeRange",
-                      "isOptional": true
                     }
                   ],
                   "type": "Extension/HubsExtension/PartType/MonitorChartPart",
@@ -948,7 +939,12 @@
                 "metadata": {
                   "inputs": [
                     {
+                      "name": "sharedTimeRange",
+                      "isOptional": true
+                    },
+                    {
                       "name": "options",
+                      "isOptional": true,
                       "value": {
                         "chart": {
                           "metrics": [
@@ -960,8 +956,7 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Failed",
-                                "resourceDisplayName": "ststv2_vmss_Scheduled_start"
+                                "displayName": "Runs Failed"
                               }
                             },
                             {
@@ -972,8 +967,7 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Failed",
-                                "resourceDisplayName": "ststv2_vmss_Scheduled_stop"
+                                "displayName": "Runs Failed"
                               }
                             },
                             {
@@ -984,8 +978,7 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Failed",
-                                "resourceDisplayName": "ststv2_vmss_Scheduled_scaleto1"
+                                "displayName": "Runs Failed"
                               }
                             },
                             {
@@ -996,12 +989,11 @@
                               "aggregationType": 7,
                               "namespace": "microsoft.logic/workflows",
                               "metricVisualization": {
-                                "displayName": "Runs Failed",
-                                "resourceDisplayName": "ststv2_vmss_AutoStop"
+                                "displayName": "Runs Failed"
                               }
                             }
                           ],
-                          "title": "Sum Runs Failed for VMSS workflows",
+                          "title": "Runs Failed — VMSS workflows",
                           "titleKind": 2,
                           "visualization": {
                             "chartType": 3,
@@ -1013,46 +1005,14 @@
                             "axisVisualization": {
                               "x": { "isVisible": true, "axisType": 2 },
                               "y": { "isVisible": true, "axisType": 1 }
-                            },
-                            "disablePinning": true
-                          },
-                          "timespan": {
-                            "relative": { "duration": 86400000 },
-                            "showUTCTime": false,
-                            "grain": 300000
+                            }
                           }
                         }
                       }
-                    },
-                    {
-                      "name": "sharedTimeRange",
-                      "isOptional": true
                     }
                   ],
                   "type": "Extension/HubsExtension/PartType/MonitorChartPart",
                   "settings": {}
-                }
-              },
-              "11": {
-                "position": {
-                  "x": 0,
-                  "y": 17,
-                  "colSpan": 13,
-                  "rowSpan": 3
-                },
-                "metadata": {
-                  "inputs": [],
-                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
-                  "settings": {
-                    "content": {
-                      "settings": {
-                        "content": "[concat('**VMSS workflow tag reference & run history**\n\n| Workflow | Required tag | Run history |\n|---|---|---|\n| `ststv2_vmss_Scheduled_start` | `StartStopV2_VMSS` = `start` or `both` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_start/runs) |\n| `ststv2_vmss_Scheduled_stop` | `StartStopV2_VMSS` = `stop` or `both` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_stop/runs) |\n| `ststv2_vmss_Scheduled_scaleto1` | `StartStopV2_VMSS_Scale` = `scaleto1` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_scaleto1/runs) |\n| `ststv2_vmss_AutoStop` | `StartStopV2_VMSS` = `autostop` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop/runs) |')]",
-                        "title": "VMSS workflow reference",
-                        "subtitle": "",
-                        "markdownSource": 1
-                      }
-                    }
-                  }
                 }
               }
             }
