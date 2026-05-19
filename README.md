@@ -197,6 +197,92 @@ Confirm the `StartStopV2_VM_Notification` action group has the correct email rec
 
 ---
 
+## Optional extensions
+
+These templates are independent of the core StartStopV2 deployment — you can deploy them on top of an existing installation without redeploying the Function App.
+
+### Cost & Savings workbook
+
+[`artifacts/nestedtemplates/CostSavingsWorkbook.json`](artifacts/nestedtemplates/CostSavingsWorkbook.json) deploys an Azure Monitor Workbook ("StartStopV2 Cost & Savings") pinned to the existing Application Insights instance. It surfaces data the built-in `StartStopV2_Dashboard` does not show.
+
+Sections:
+
+1. **Actual VM cost** — daily trend and top-N table from Azure Cost Management.
+2. **Start/Stop activity** — `VmExecutionsAttempted` from Application Insights.
+3. **Modeled savings** — `NoPiiVirtualMachineResponsibleSavings` / `NoPiiVirtualMachineResponsibleDownTime`. *These populate only if you mirror the centralized `NoPii*` telemetry to your local App Insights — by default it ships to a Microsoft-owned sink. See [`CentralizedAppInsightsLogger.cs`](decompiled/StartStopAzureFunctions.Logging/CentralizedAppInsightsLogger.cs) in the decompiled source.*
+4. **VM inventory** — Resource Graph query showing VMs and power state in the selected scope.
+
+Deploy:
+
+```powershell
+az deployment group create `
+    --resource-group rg-startstop-v2 `
+    --template-file artifacts/nestedtemplates/CostSavingsWorkbook.json `
+    --parameters applicationInsightsName=<applicationInsightsName>
+```
+
+Open afterwards from **Azure Monitor → Workbooks** (or the resource group).
+
+### VMSS schedulers (`LogicApps.Vmss.json`)
+
+[`artifacts/nestedtemplates/LogicApps.Vmss.json`](artifacts/nestedtemplates/LogicApps.Vmss.json) deploys three tag-driven Logic Apps that start and stop **Virtual Machine Scale Sets** (`Microsoft.Compute/virtualMachineScaleSets`). They do **not** use the StartStopV2 Function App — each workflow queries Azure Resource Graph and calls the VMSS REST API directly using its own system-assigned managed identity.
+
+| Workflow | Default trigger | Acts on VMSS tagged | Action |
+| --- | --- | --- | --- |
+| `ststv2_vmss_Scheduled_start` | Daily 07:00 (configurable time zone) | `StartStopV2_VMSS = start` or `both` | `…/virtualMachineScaleSets/{n}/start` |
+| `ststv2_vmss_Scheduled_stop`  | Daily 19:00 | `StartStopV2_VMSS = stop` or `both` | `…/virtualMachineScaleSets/{n}/deallocate` |
+| `ststv2_vmss_AutoStop`        | Every 15 minutes | `StartStopV2_VMSS = autostop` | `…/virtualMachineScaleSets/{n}/deallocate` |
+
+All three are deployed **Disabled** and grant their managed identity the `Virtual Machine Contributor` role on the **current resource group only**. If your VMSS live elsewhere, add scope-appropriate role assignments before enabling.
+
+Deploy:
+
+```powershell
+az deployment group create `
+    --resource-group rg-startstop-v2 `
+    --template-file artifacts/nestedtemplates/LogicApps.Vmss.json
+```
+
+Key parameters (see template for full list):
+
+| Parameter | Default | Notes |
+| --- | --- | --- |
+| `scheduleTimeZone` | `GMT Standard Time` | Windows time-zone ID. |
+| `startSchedule` / `stopSchedule` | 07:00 / 19:00 | Recurrence schedule objects (`hours` / `minutes` / `weekDays`). |
+| `autoStopRecurrenceMinutes` | `15` | How often the AutoStop workflow scans. |
+| `targetSubscriptionIds` | Current subscription | Resource Graph search scope. |
+| `tagName` | `StartStopV2_VMSS` | Tag key on VMSS that opts them in. |
+| `assignRbac` | `true` | If false, no role assignments are created — grant the workflow MIs `Virtual Machine Contributor` manually at the right scope. |
+| `logicAppState` | `Disabled` | Set to `Enabled` once tested. |
+
+Usage after deployment:
+
+```powershell
+# 1. Tag a non-prod VMSS
+az tag update --operation Merge `
+    --resource-id <vmss-resource-id> `
+    --tags StartStopV2_VMSS=autostop
+
+# 2. (If outside rg-startstop-v2) grant the workflow MI access
+$mi = az logic workflow show -g rg-startstop-v2 -n ststv2_vmss_AutoStop --query identity.principalId -o tsv
+az role assignment create `
+    --assignee-object-id $mi --assignee-principal-type ServicePrincipal `
+    --role "Virtual Machine Contributor" `
+    --scope <target-rg-resource-id>
+
+# 3. Trigger once for testing
+az rest --method post `
+    --uri "https://management.azure.com/subscriptions/<sub>/resourceGroups/rg-startstop-v2/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop/triggers/Recurrence/run?api-version=2019-05-01"
+
+# 4. Enable when satisfied
+az resource update -g rg-startstop-v2 -n ststv2_vmss_AutoStop `
+    --resource-type Microsoft.Logic/workflows --set properties.state=Enabled
+```
+
+> Telemetry: VMSS workflows do not write to `customMetrics` like the VM functions do. Audit trail is available in the Logic App run history and in the Activity Log entries for the start/deallocate operations.
+
+---
+
 ## Updating an existing deployment
 
 To pick up new function code, run the `TriggerAutoUpdate` function manually or let it run on its daily schedule. To pick up infrastructure changes from this fork, re-run `deploy.ps1` against the same resource group — the ARM templates are idempotent.
@@ -219,7 +305,8 @@ To pick up new function code, run the `TriggerAutoUpdate` function manually or l
 | Storage auth (function code) | Connection strings in `QueueClient` / `TableServiceClient` | `DefaultAzureCredential` against `https://<account>.queue/table.core.windows.net` (rebuilt `StartStopAzureFunctions.dll`) |
 | RBAC | None | Storage Blob Data Owner + Queue/Table Data Contributor + File Data Privileged Contributor on the storage account, granted to the Function App MI |
 | Alerts | `microsoft.insights/scheduledQueryRules` 2018-04-16 | `Microsoft.Insights/scheduledQueryRules` 2023-03-15-preview (Common Alert Schema) |
-| Schedulers | Created in Function App settings via marketplace UI | Separate `LogicApps.json` template |
+| Schedulers | Created in Function App settings via marketplace UI | Separate `LogicApps.json` template, plus optional `LogicApps.Vmss.json` for VM Scale Sets |
+| Reporting | `StartStopV2_Dashboard` (operational only) | Plus optional `CostSavingsWorkbook.json` (Cost Management + activity + inventory) |
 | Function package | Upstream `StartStopV2.zip` | `StartStopV2-MI.zip` shipped in this repo (decompiled, patched, rebuilt) |
 
 ---

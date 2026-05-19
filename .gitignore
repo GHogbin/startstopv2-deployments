@@ -9,3 +9,9 @@ deploy-parameters.local.json
 .vscode/
 *.bak
 *.tmp
+
+# Local-only inspection / build artifacts
+decompiled/
+refs/
+refs-extra
+stage-zip/
