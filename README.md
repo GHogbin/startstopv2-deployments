@@ -240,7 +240,7 @@ Open afterwards from **Azure Monitor → Workbooks** (or the resource group).
 | --- | --- | --- | --- |
 | `ststv2_vmss_Scheduled_start`    | Daily 07:00 (configurable time zone) | `StartStopV2_VMSS = start` or `both` | `…/virtualMachineScaleSets/{n}/start` |
 | `ststv2_vmss_Scheduled_stop`     | Daily 19:00 | `StartStopV2_VMSS = stop` or `both` | `…/virtualMachineScaleSets/{n}/deallocate` |
-| `ststv2_vmss_Scheduled_scaleto1` | Daily 07:00 | `StartStopV2_VMSS = scaleto1` | `PATCH …/virtualMachineScaleSets/{n}` with `sku.capacity = scaleToOneCapacity` (default `1`) |
+| `ststv2_vmss_Scheduled_scaleto1` | Daily 07:00 | `StartStopV2_VMSS_Scale = scaleto1` (separate tag) | `PATCH …/virtualMachineScaleSets/{n}` with `sku.capacity = scaleToOneCapacity` (default `1`) |
 | `ststv2_vmss_AutoStop`           | Every 15 minutes | `StartStopV2_VMSS = autostop` | `…/virtualMachineScaleSets/{n}/deallocate` |
 
 All four are deployed **Disabled** and grant their managed identity the `Virtual Machine Contributor` role on the **current resource group only**. If your VMSS live elsewhere, add scope-appropriate role assignments before enabling.
@@ -264,7 +264,8 @@ Key parameters (see template for full list):
 | `autoStopRecurrenceMinutes` | `15` | How often the AutoStop workflow scans. |
 | `targetSubscriptionIds` | Current subscription | Resource Graph search scope. |
 | `targetResourceGroups` | `[]` (all RGs in scope) | Optional array of RG **names** to restrict the search to (case-insensitive). Equivalent to `targetResourceGroups` on the VM Logic Apps. Example: `[ "rg-prod-vmss", "rg-dev-vmss" ]`. |
-| `tagName` | `StartStopV2_VMSS` | Tag key on VMSS that opts them in. Recognized values: `start`, `stop`, `both`, `autostop`, `scaleto1`. |
+| `tagName` | `StartStopV2_VMSS` | Tag key on VMSS that opts them in for start/stop/autostop. Recognized values: `start`, `stop`, `both`, `autostop`. |
+| `scaleTagName` | `StartStopV2_VMSS_Scale` | Separate tag key for the scale-to-one workflow. Recognized value: `scaleto1`. Independent of `tagName`, so a single VMSS can carry both (e.g. `StartStopV2_VMSS=both` + `StartStopV2_VMSS_Scale=scaleto1`). |
 | `assignRbac` | `true` | If false, no role assignments are created — grant the workflow MIs `Virtual Machine Contributor` manually at the right scope. |
 | `logicAppState` | `Disabled` | Set to `Enabled` once tested. |
 

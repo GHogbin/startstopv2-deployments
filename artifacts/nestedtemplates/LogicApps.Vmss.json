@@ -56,7 +56,12 @@
     "tagName": {
       "type": "string",
       "defaultValue": "StartStopV2_VMSS",
-      "metadata": { "description": "Tag key on VMSS that opts them in. Recognized tag values: 'start', 'stop', 'both', 'autostop', 'scaleto1'." }
+      "metadata": { "description": "Tag key on VMSS that opts them in for start/stop/autostop. Recognized values: 'start', 'stop', 'both', 'autostop'." }
+    },
+    "scaleTagName": {
+      "type": "string",
+      "defaultValue": "StartStopV2_VMSS_Scale",
+      "metadata": { "description": "Separate tag key on VMSS that opts them in to the scale-to-one workflow. Recognized value: 'scaleto1'. Independent of tagName so a VMSS can be tagged for both start/stop and scale-to-one." }
     },
     "assignRbac": {
       "type": "bool",
@@ -84,7 +89,7 @@
     "queryStart":    "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) in~ (\"start\",\"both\")', variables('projectClause'))]",
     "queryStop":     "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) in~ (\"stop\",\"both\")',  variables('projectClause'))]",
     "queryAutoStop": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) =~ \"autostop\"',                variables('projectClause'))]",
-    "queryScaleToOne": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) =~ \"scaleto1\"',              variables('projectClause'))]"
+    "queryScaleToOne": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('scaleTagName'), '\"]) =~ \"scaleto1\"',         variables('projectClause'))]"
   },
   "resources": [
     {
@@ -287,7 +292,7 @@
           "contentVersion": "1.0.0.0",
           "parameters": {
             "subscriptionIds": { "type": "Array", "defaultValue": "[parameters('targetSubscriptionIds')]" },
-            "tagName":         { "type": "String", "defaultValue": "[parameters('tagName')]" },
+            "tagName":         { "type": "String", "defaultValue": "[parameters('scaleTagName')]" },
             "argEndpoint":     { "type": "String", "defaultValue": "[variables('argEndpoint')]" },
             "armEndpoint":     { "type": "String", "defaultValue": "[variables('armEndpoint')]" },
             "vmssApiVersion":  { "type": "String", "defaultValue": "[parameters('vmssApiVersion')]" },
