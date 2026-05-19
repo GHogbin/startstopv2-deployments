@@ -22,6 +22,16 @@
       "defaultValue": { "hours": [ "19" ], "minutes": [ 0 ] },
       "metadata": { "description": "Recurrence schedule object for the stop workflow." }
     },
+    "scaleToOneSchedule": {
+      "type": "object",
+      "defaultValue": { "hours": [ "7" ], "minutes": [ 0 ] },
+      "metadata": { "description": "Recurrence schedule object for the scale-to-one workflow." }
+    },
+    "scaleToOneCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": { "description": "Target instance count applied to tagged VMSS by the scale-to-one workflow." }
+    },
     "autoStopRecurrenceMinutes": {
       "type": "int",
       "defaultValue": 15,
@@ -46,7 +56,7 @@
     "tagName": {
       "type": "string",
       "defaultValue": "StartStopV2_VMSS",
-      "metadata": { "description": "Tag key on VMSS that opts them in. Recognized tag values: 'start', 'stop', 'both', 'autostop'." }
+      "metadata": { "description": "Tag key on VMSS that opts them in. Recognized tag values: 'start', 'stop', 'both', 'autostop', 'scaleto1'." }
     },
     "assignRbac": {
       "type": "bool",
@@ -63,6 +73,7 @@
     "logicApp_Start": "ststv2_vmss_Scheduled_start",
     "logicApp_Stop": "ststv2_vmss_Scheduled_stop",
     "logicApp_AutoStop": "ststv2_vmss_AutoStop",
+    "logicApp_ScaleToOne": "ststv2_vmss_Scheduled_scaleto1",
     "armEndpoint": "https://management.azure.com",
     "argEndpoint": "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01",
     "vmContributorRoleId": "9980e02c-c2be-4d73-94e8-173b1dc7cf3c",
@@ -72,7 +83,8 @@
     "projectClause": " | project id, name, resourceGroup, subscriptionId",
     "queryStart":    "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) in~ (\"start\",\"both\")', variables('projectClause'))]",
     "queryStop":     "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) in~ (\"stop\",\"both\")',  variables('projectClause'))]",
-    "queryAutoStop": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) =~ \"autostop\"',                variables('projectClause'))]"
+    "queryAutoStop": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) =~ \"autostop\"',                variables('projectClause'))]",
+    "queryScaleToOne": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) =~ \"scaleto1\"',              variables('projectClause'))]"
   },
   "resources": [
     {
@@ -262,6 +274,72 @@
       }
     },
     {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[variables('logicApp_ScaleToOne')]",
+      "location": "[parameters('location')]",
+      "tags": { "SolutionName": "StartStopV2", "ResourceType": "VMSS" },
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "[parameters('logicAppState')]",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "subscriptionIds": { "type": "Array", "defaultValue": "[parameters('targetSubscriptionIds')]" },
+            "tagName":         { "type": "String", "defaultValue": "[parameters('tagName')]" },
+            "argEndpoint":     { "type": "String", "defaultValue": "[variables('argEndpoint')]" },
+            "armEndpoint":     { "type": "String", "defaultValue": "[variables('armEndpoint')]" },
+            "vmssApiVersion":  { "type": "String", "defaultValue": "[parameters('vmssApiVersion')]" },
+            "targetCapacity":  { "type": "Int",    "defaultValue": "[parameters('scaleToOneCapacity')]" }
+          },
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": "[parameters('scaleToOneSchedule')]",
+                "timeZone": "[parameters('scheduleTimeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "Find_VMSS": {
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "@parameters('argEndpoint')",
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "@parameters('armEndpoint')" },
+                "body": {
+                  "subscriptions": "@parameters('subscriptionIds')",
+                  "query": "[variables('queryScaleToOne')]"
+                }
+              }
+            },
+            "ScaleToOne_Each_VMSS": {
+              "type": "Foreach",
+              "runAfter": { "Find_VMSS": [ "Succeeded" ] },
+              "foreach": "@body('Find_VMSS')?['data']",
+              "actions": {
+                "Patch_Capacity": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "PATCH",
+                    "uri": "@{concat(parameters('armEndpoint'), items('ScaleToOne_Each_VMSS')?['id'], '?api-version=', parameters('vmssApiVersion'))}",
+                    "authentication": { "type": "ManagedServiceIdentity", "audience": "@parameters('armEndpoint')" },
+                    "body": {
+                      "sku": { "capacity": "@parameters('targetCapacity')" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "condition": "[parameters('assignRbac')]",
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
@@ -296,11 +374,24 @@
         "principalId": "[reference(resourceId('Microsoft.Logic/workflows', variables('logicApp_AutoStop')), '2019-05-01', 'Full').identity.principalId]",
         "principalType": "ServicePrincipal"
       }
+    },
+    {
+      "condition": "[parameters('assignRbac')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, variables('logicApp_ScaleToOne'), variables('vmContributorRoleId'))]",
+      "dependsOn": [ "[resourceId('Microsoft.Logic/workflows', variables('logicApp_ScaleToOne'))]" ],
+      "properties": {
+        "roleDefinitionId": "[variables('vmContributorRoleDefId')]",
+        "principalId": "[reference(resourceId('Microsoft.Logic/workflows', variables('logicApp_ScaleToOne')), '2019-05-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
     }
   ],
   "outputs": {
-    "startWorkflowId":    { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_Start'))]" },
-    "stopWorkflowId":     { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_Stop'))]" },
-    "autoStopWorkflowId": { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_AutoStop'))]" }
+    "startWorkflowId":      { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_Start'))]" },
+    "stopWorkflowId":       { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_Stop'))]" },
+    "autoStopWorkflowId":   { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_AutoStop'))]" },
+    "scaleToOneWorkflowId": { "type": "string", "value": "[resourceId('Microsoft.Logic/workflows', variables('logicApp_ScaleToOne'))]" }
   }
 }

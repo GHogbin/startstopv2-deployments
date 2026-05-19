@@ -12,7 +12,7 @@ The Function App runs on a **Windows B1 Basic** plan with the .NET 8 isolated wo
 - **Windows B1 / .NET 8 isolated** — rebuilt function package (`StartStopV2-MI.zip`) shipped in-repo.
 - **`deploy.ps1` one-shot installer** — RG, infra, dashboard, function code, Logic Apps and alerts in one go.
 - **VM schedulers** — five Logic Apps (`Scheduled_start/stop`, `Sequenced_start/stop`, `AutoStop`) that call the Function App via managed identity. See [`artifacts/nestedtemplates/LogicApps.json`](artifacts/nestedtemplates/LogicApps.json).
-- **VMSS schedulers (optional)** — three parallel Logic Apps (`ststv2_vmss_Scheduled_start/stop`, `ststv2_vmss_AutoStop`) that scale-set start/deallocate tagged `Microsoft.Compute/virtualMachineScaleSets` resources directly via Resource Graph + ARM REST, with no Function App involvement. See [`artifacts/nestedtemplates/LogicApps.Vmss.json`](artifacts/nestedtemplates/LogicApps.Vmss.json).
+- **VMSS schedulers (optional)** — four parallel Logic Apps (`ststv2_vmss_Scheduled_start/stop`, `ststv2_vmss_Scheduled_scaleto1`, `ststv2_vmss_AutoStop`) that start, deallocate, or scale tagged `Microsoft.Compute/virtualMachineScaleSets` resources directly via Resource Graph + ARM REST, with no Function App involvement. See [`artifacts/nestedtemplates/LogicApps.Vmss.json`](artifacts/nestedtemplates/LogicApps.Vmss.json).
 - **Cost & Savings workbook (optional)** — Azure Monitor workbook on top of the existing Application Insights with Cost Management trend, start/stop activity, modeled-savings placeholders and VM inventory. See [`artifacts/nestedtemplates/CostSavingsWorkbook.json`](artifacts/nestedtemplates/CostSavingsWorkbook.json).
 
 Upstream user guide: https://learn.microsoft.com/azure/azure-functions/start-stop-vms/overview
@@ -234,15 +234,16 @@ Open afterwards from **Azure Monitor → Workbooks** (or the resource group).
 
 ### VMSS schedulers (`LogicApps.Vmss.json`)
 
-[`artifacts/nestedtemplates/LogicApps.Vmss.json`](artifacts/nestedtemplates/LogicApps.Vmss.json) deploys three tag-driven Logic Apps that start and stop **Virtual Machine Scale Sets** (`Microsoft.Compute/virtualMachineScaleSets`). They do **not** use the StartStopV2 Function App — each workflow queries Azure Resource Graph and calls the VMSS REST API directly using its own system-assigned managed identity.
+[`artifacts/nestedtemplates/LogicApps.Vmss.json`](artifacts/nestedtemplates/LogicApps.Vmss.json) deploys four tag-driven Logic Apps that start, stop, and scale **Virtual Machine Scale Sets** (`Microsoft.Compute/virtualMachineScaleSets`). They do **not** use the StartStopV2 Function App — each workflow queries Azure Resource Graph and calls the VMSS REST API directly using its own system-assigned managed identity.
 
 | Workflow | Default trigger | Acts on VMSS tagged | Action |
 | --- | --- | --- | --- |
-| `ststv2_vmss_Scheduled_start` | Daily 07:00 (configurable time zone) | `StartStopV2_VMSS = start` or `both` | `…/virtualMachineScaleSets/{n}/start` |
-| `ststv2_vmss_Scheduled_stop`  | Daily 19:00 | `StartStopV2_VMSS = stop` or `both` | `…/virtualMachineScaleSets/{n}/deallocate` |
-| `ststv2_vmss_AutoStop`        | Every 15 minutes | `StartStopV2_VMSS = autostop` | `…/virtualMachineScaleSets/{n}/deallocate` |
+| `ststv2_vmss_Scheduled_start`    | Daily 07:00 (configurable time zone) | `StartStopV2_VMSS = start` or `both` | `…/virtualMachineScaleSets/{n}/start` |
+| `ststv2_vmss_Scheduled_stop`     | Daily 19:00 | `StartStopV2_VMSS = stop` or `both` | `…/virtualMachineScaleSets/{n}/deallocate` |
+| `ststv2_vmss_Scheduled_scaleto1` | Daily 07:00 | `StartStopV2_VMSS = scaleto1` | `PATCH …/virtualMachineScaleSets/{n}` with `sku.capacity = scaleToOneCapacity` (default `1`) |
+| `ststv2_vmss_AutoStop`           | Every 15 minutes | `StartStopV2_VMSS = autostop` | `…/virtualMachineScaleSets/{n}/deallocate` |
 
-All three are deployed **Disabled** and grant their managed identity the `Virtual Machine Contributor` role on the **current resource group only**. If your VMSS live elsewhere, add scope-appropriate role assignments before enabling.
+All four are deployed **Disabled** and grant their managed identity the `Virtual Machine Contributor` role on the **current resource group only**. If your VMSS live elsewhere, add scope-appropriate role assignments before enabling.
 
 Deploy:
 
@@ -258,10 +259,12 @@ Key parameters (see template for full list):
 | --- | --- | --- |
 | `scheduleTimeZone` | `GMT Standard Time` | Windows time-zone ID. |
 | `startSchedule` / `stopSchedule` | 07:00 / 19:00 | Recurrence schedule objects (`hours` / `minutes` / `weekDays`). |
+| `scaleToOneSchedule` | 07:00 | Recurrence schedule object for the scale-to-one workflow. |
+| `scaleToOneCapacity` | `1` | Target instance count PATCHed onto VMSS tagged `scaleto1`. |
 | `autoStopRecurrenceMinutes` | `15` | How often the AutoStop workflow scans. |
 | `targetSubscriptionIds` | Current subscription | Resource Graph search scope. |
 | `targetResourceGroups` | `[]` (all RGs in scope) | Optional array of RG **names** to restrict the search to (case-insensitive). Equivalent to `targetResourceGroups` on the VM Logic Apps. Example: `[ "rg-prod-vmss", "rg-dev-vmss" ]`. |
-| `tagName` | `StartStopV2_VMSS` | Tag key on VMSS that opts them in. |
+| `tagName` | `StartStopV2_VMSS` | Tag key on VMSS that opts them in. Recognized values: `start`, `stop`, `both`, `autostop`, `scaleto1`. |
 | `assignRbac` | `true` | If false, no role assignments are created — grant the workflow MIs `Virtual Machine Contributor` manually at the right scope. |
 | `logicAppState` | `Disabled` | Set to `Enabled` once tested. |
 
