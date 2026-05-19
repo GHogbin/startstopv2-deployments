@@ -1,0 +1,230 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workbookName": {
+      "type": "string",
+      "defaultValue": "StartStopV2 Cost & Savings",
+      "metadata": { "description": "Display name of the workbook." }
+    },
+    "workbookId": {
+      "type": "string",
+      "defaultValue": "[guid(resourceGroup().id, 'ssv2-cost-savings-workbook')]",
+      "metadata": { "description": "Resource name (GUID) for the workbook." }
+    },
+    "applicationInsightsName": {
+      "type": "string",
+      "metadata": { "description": "Name of the Application Insights instance the StartStopV2 function app reports to (e.g. ssv2insights-8852)." }
+    },
+    "subscriptionIdForCost": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]",
+      "metadata": { "description": "Subscription that owns the VMs you want to see cost for." }
+    }
+  },
+  "variables": {
+    "appInsightsResourceId": "[resourceId('microsoft.insights/components', parameters('applicationInsightsName'))]",
+    "workbookContent": {
+      "version": "Notebook/1.0",
+      "items": [
+        {
+          "type": 1,
+          "content": {
+            "json": "# StartStopV2 — Cost & Savings\nActual cost comes from **Azure Cost Management**. Start/stop activity comes from **Application Insights**. Modeled savings come from the `NoPii*` metrics emitted by the function app (only populated if you mirror centralized telemetry to your local App Insights)."
+          },
+          "name": "header"
+        },
+        {
+          "type": 9,
+          "content": {
+            "version": "KqlParameterItem/1.0",
+            "parameters": [
+              {
+                "id": "p-timerange",
+                "version": "KqlParameterItem/1.0",
+                "name": "TimeRange",
+                "label": "Time range",
+                "type": 4,
+                "value": { "durationMs": 2592000000 },
+                "typeSettings": {
+                  "selectableValues": [
+                    { "durationMs": 86400000 },
+                    { "durationMs": 604800000 },
+                    { "durationMs": 2592000000 },
+                    { "durationMs": 7776000000 }
+                  ]
+                }
+              },
+              {
+                "id": "p-sub",
+                "version": "KqlParameterItem/1.0",
+                "name": "TargetSubscription",
+                "label": "Target subscription",
+                "type": 6,
+                "value": "[parameters('subscriptionIdForCost')]",
+                "typeSettings": { "additionalResourceOptions": [], "includeAll": false }
+              },
+              {
+                "id": "p-rg",
+                "version": "KqlParameterItem/1.0",
+                "name": "ResourceGroupFilter",
+                "label": "Resource group (optional)",
+                "type": 1,
+                "value": ""
+              }
+            ]
+          },
+          "name": "parameters"
+        },
+        {
+          "type": 1,
+          "content": { "json": "## 1. Actual VM cost (Cost Management)\nDaily cost of `Microsoft.Compute/virtualMachines` in the selected subscription/scope." },
+          "name": "sec-cost-header"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "{\"type\":\"Usage\",\"timeframe\":\"Custom\",\"timePeriod\":{\"from\":\"{TimeRange:startISO}\",\"to\":\"{TimeRange:endISO}\"},\"dataset\":{\"granularity\":\"Daily\",\"aggregation\":{\"totalCost\":{\"name\":\"PreTaxCost\",\"function\":\"Sum\"}},\"grouping\":[{\"type\":\"Dimension\",\"name\":\"ResourceId\"}],\"filter\":{\"dimensions\":{\"name\":\"ResourceType\",\"operator\":\"In\",\"values\":[\"microsoft.compute/virtualmachines\"]}}}}",
+            "queryType": 12,
+            "resourceType": "microsoft.costmanagement/query",
+            "armSource": {
+              "url": "/subscriptions/{TargetSubscription}/providers/Microsoft.CostManagement/query?api-version=2023-03-01",
+              "httpMethod": "POST"
+            },
+            "size": 0,
+            "title": "Daily VM cost (USD)",
+            "visualization": "timechart"
+          },
+          "name": "vm-cost-trend"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "{\"type\":\"Usage\",\"timeframe\":\"Custom\",\"timePeriod\":{\"from\":\"{TimeRange:startISO}\",\"to\":\"{TimeRange:endISO}\"},\"dataset\":{\"granularity\":\"None\",\"aggregation\":{\"totalCost\":{\"name\":\"PreTaxCost\",\"function\":\"Sum\"}},\"grouping\":[{\"type\":\"Dimension\",\"name\":\"ResourceId\"}],\"filter\":{\"dimensions\":{\"name\":\"ResourceType\",\"operator\":\"In\",\"values\":[\"microsoft.compute/virtualmachines\"]}}}}",
+            "queryType": 12,
+            "resourceType": "microsoft.costmanagement/query",
+            "armSource": {
+              "url": "/subscriptions/{TargetSubscription}/providers/Microsoft.CostManagement/query?api-version=2023-03-01",
+              "httpMethod": "POST"
+            },
+            "size": 0,
+            "title": "Top VMs by cost in selected period",
+            "gridSettings": {
+              "sortBy": [ { "itemKey": "PreTaxCost", "sortOrder": 2 } ]
+            }
+          },
+          "name": "vm-cost-top"
+        },
+        {
+          "type": 1,
+          "content": { "json": "## 2. Start/Stop activity (Application Insights)\nFrom `VmExecutionsAttempted` emitted by the StartStopV2 function app." },
+          "name": "sec-activity-header"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "customMetrics\n| where name == 'VmExecutionsAttempted'\n| extend action  = tostring(customDimensions.prop__ActionType),\n         success = tobool(customDimensions.prop__Successful),\n         vm      = tostring(customDimensions.prop__ResourceName),\n         rg      = tostring(customDimensions.prop__ResourceGroup),\n         sub     = tostring(customDimensions.prop__SubscriptionId)\n| where isempty('{ResourceGroupFilter}') or rg =~ '{ResourceGroupFilter}'\n| summarize attempts = sum(value) by action, bin(timestamp, 1d)\n| render timechart",
+            "size": 0,
+            "title": "Daily start/stop attempts by action",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components",
+            "crossComponentResources": [ "[variables('appInsightsResourceId')]" ]
+          },
+          "name": "activity-by-action"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "customMetrics\n| where name == 'VmExecutionsAttempted'\n| extend action  = tostring(customDimensions.prop__ActionType),\n         success = tobool(customDimensions.prop__Successful),\n         vm      = tostring(customDimensions.prop__ResourceName),\n         rg      = tostring(customDimensions.prop__ResourceGroup)\n| where isempty('{ResourceGroupFilter}') or rg =~ '{ResourceGroupFilter}'\n| summarize Attempts = sum(value),\n            Successes = sumif(value, success == true),\n            Failures  = sumif(value, success == false)\n            by vm, rg, action\n| order by Attempts desc",
+            "size": 0,
+            "title": "Per-VM start/stop attempts (success vs failure)",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components",
+            "crossComponentResources": [ "[variables('appInsightsResourceId')]" ]
+          },
+          "name": "activity-per-vm"
+        },
+        {
+          "type": 1,
+          "content": { "json": "## 3. Modeled savings (NoPii metrics)\n> These tiles only populate if the centralized `NoPii*` telemetry is also being written to **this** Application Insights instance. By default it goes only to Microsoft. See `CentralizedAppInsightsLogger`." },
+          "name": "sec-savings-header"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "customMetrics\n| where name == 'NoPiiVirtualMachineResponsibleSavings'\n| extend sub = tostring(customDimensions.TargetSubscription),\n         rg  = tostring(customDimensions.TargetResourceGroup)\n| where isempty('{ResourceGroupFilter}') or rg =~ '{ResourceGroupFilter}'\n| summarize SavingsUSD = sum(value) by bin(timestamp, 1d), rg\n| render columnchart",
+            "size": 0,
+            "title": "Daily modeled savings by resource group (USD)",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components",
+            "crossComponentResources": [ "[variables('appInsightsResourceId')]" ]
+          },
+          "name": "savings-trend"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "customMetrics\n| where name == 'NoPiiVirtualMachineResponsibleDownTime'\n| extend rg = tostring(customDimensions.TargetResourceGroup)\n| where isempty('{ResourceGroupFilter}') or rg =~ '{ResourceGroupFilter}'\n| summarize DownTimeHours = sum(value) by bin(timestamp, 1d), rg\n| render columnchart",
+            "size": 0,
+            "title": "Daily responsible down-time (hours)",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components",
+            "crossComponentResources": [ "[variables('appInsightsResourceId')]" ]
+          },
+          "name": "downtime-trend"
+        },
+        {
+          "type": 1,
+          "content": { "json": "## 4. VM inventory (Azure Resource Graph)" },
+          "name": "sec-inv-header"
+        },
+        {
+          "type": 3,
+          "content": {
+            "version": "KqlItem/1.0",
+            "query": "resources\n| where type =~ 'microsoft.compute/virtualmachines'\n| where subscriptionId == '{TargetSubscription}'\n| where isempty('{ResourceGroupFilter}') or resourceGroup =~ '{ResourceGroupFilter}'\n| extend powerState = tostring(properties.extended.instanceView.powerState.displayStatus),\n         size       = tostring(properties.hardwareProfile.vmSize),\n         osType     = tostring(properties.storageProfile.osDisk.osType)\n| project name, resourceGroup, location, size, osType, powerState, id\n| order by powerState asc, name asc",
+            "size": 0,
+            "title": "VMs in scope",
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "crossComponentResources": [ "value::selected" ]
+          },
+          "name": "inventory"
+        }
+      ],
+      "fallbackResourceIds": [ "Azure Monitor" ],
+      "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+    }
+  },
+  "resources": [
+    {
+      "type": "microsoft.insights/workbooks",
+      "apiVersion": "2022-04-01",
+      "name": "[parameters('workbookId')]",
+      "location": "[resourceGroup().location]",
+      "kind": "shared",
+      "properties": {
+        "displayName": "[parameters('workbookName')]",
+        "category": "workbook",
+        "serializedData": "[string(variables('workbookContent'))]",
+        "version": "Notebook/1.0",
+        "sourceId": "[variables('appInsightsResourceId')]"
+      },
+      "tags": {
+        "SolutionName": "StartStopV2"
+      }
+    }
+  ],
+  "outputs": {
+    "workbookId": {
+      "type": "string",
+      "value": "[resourceId('microsoft.insights/workbooks', parameters('workbookId'))]"
+    }
+  }
+}
