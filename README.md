@@ -6,6 +6,15 @@ This **fork** of [`microsoft/startstopv2-deployments`](https://github.com/micros
 
 The Function App runs on a **Windows B1 Basic** plan with the .NET 8 isolated worker runtime. The rebuilt function package (`StartStopV2-MI.zip`) is committed to this repo at the root and is deployed in place of the upstream zip. It is intended to be deployed via the included `deploy.ps1` script (or the "Deploy to Azure" buttons further down, which point to the templates in this fork).
 
+### What's in this fork
+
+- **Managed-identity everywhere** — no shared keys on storage, no connection strings in app settings.
+- **Windows B1 / .NET 8 isolated** — rebuilt function package (`StartStopV2-MI.zip`) shipped in-repo.
+- **`deploy.ps1` one-shot installer** — RG, infra, dashboard, function code, Logic Apps and alerts in one go.
+- **VM schedulers** — five Logic Apps (`Scheduled_start/stop`, `Sequenced_start/stop`, `AutoStop`) that call the Function App via managed identity. See [`artifacts/nestedtemplates/LogicApps.json`](artifacts/nestedtemplates/LogicApps.json).
+- **VMSS schedulers (optional)** — three parallel Logic Apps (`ststv2_vmss_Scheduled_start/stop`, `ststv2_vmss_AutoStop`) that scale-set start/deallocate tagged `Microsoft.Compute/virtualMachineScaleSets` resources directly via Resource Graph + ARM REST, with no Function App involvement. See [`artifacts/nestedtemplates/LogicApps.Vmss.json`](artifacts/nestedtemplates/LogicApps.Vmss.json).
+- **Cost & Savings workbook (optional)** — Azure Monitor workbook on top of the existing Application Insights with Cost Management trend, start/stop activity, modeled-savings placeholders and VM inventory. See [`artifacts/nestedtemplates/CostSavingsWorkbook.json`](artifacts/nestedtemplates/CostSavingsWorkbook.json).
+
 Upstream user guide: https://learn.microsoft.com/azure/azure-functions/start-stop-vms/overview
 
 > **Required:** **Owner** permission at the subscription scope is needed during initial deployment so that role assignments for the managed identity can be created.
