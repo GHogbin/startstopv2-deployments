@@ -820,6 +820,72 @@
                   "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
                   "settings": {}
                 }
+              },
+              "8": {
+                "position": {
+                  "x": 0,
+                  "y": 12,
+                  "colSpan": 13,
+                  "rowSpan": 1
+                },
+                "metadata": {
+                  "inputs": [],
+                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "settings": {
+                    "content": {
+                      "settings": {
+                        "content": "## VMSS Schedulers\nOptional Logic App based schedulers for Virtual Machine Scale Sets (deployed via `LogicApps.Vmss.json`).",
+                        "title": "",
+                        "subtitle": "",
+                        "markdownSource": 1
+                      }
+                    }
+                  }
+                }
+              },
+              "9": {
+                "position": {
+                  "x": 0,
+                  "y": 13,
+                  "colSpan": 6,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "inputs": [],
+                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "settings": {
+                    "content": {
+                      "settings": {
+                        "content": "**Required VMSS tags**\n\n| Tag key | Value | Action |\n|---|---|---|\n| `StartStopV2_VMSS` | `start` | Start on schedule |\n| `StartStopV2_VMSS` | `stop` | Deallocate on schedule |\n| `StartStopV2_VMSS` | `both` | Start + Stop |\n| `StartStopV2_VMSS` | `autostop` | AutoStop when idle |\n| `StartStopV2_VMSS_Scale` | `scaleto1` | Scale capacity to 1 on schedule |\n\nA VMSS can carry both tags (e.g. `StartStopV2_VMSS=both` and `StartStopV2_VMSS_Scale=scaleto1`).\n\nThe four Logic App workflows live in this resource group. They are deployed **Disabled** by default — enable them in the portal once you have tagged your target VMSS.",
+                        "title": "VMSS tagging reference",
+                        "subtitle": "",
+                        "markdownSource": 1
+                      }
+                    }
+                  }
+                }
+              },
+              "10": {
+                "position": {
+                  "x": 6,
+                  "y": 13,
+                  "colSpan": 7,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "inputs": [],
+                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "settings": {
+                    "content": {
+                      "settings": {
+                        "content": "[concat('**VMSS Logic App workflows**  \nResource Group: `', resourceGroup().name, '`\n\n| Workflow | Run history |\n|---|---|\n| `ststv2_vmss_Scheduled_start` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_start/runs) |\n| `ststv2_vmss_Scheduled_stop` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_stop/runs) |\n| `ststv2_vmss_Scheduled_scaleto1` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_scaleto1/runs) |\n| `ststv2_vmss_AutoStop` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop/runs) |\n\nEach workflow uses a SystemAssigned managed identity that must have **Virtual Machine Contributor** on the resource groups containing the target VMSS.')]",
+                        "title": "Logic App run history",
+                        "subtitle": "",
+                        "markdownSource": 1
+                      }
+                    }
+                  }
+                }
               }
             }
           }
