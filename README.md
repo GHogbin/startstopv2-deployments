@@ -251,6 +251,7 @@ Key parameters (see template for full list):
 | `startSchedule` / `stopSchedule` | 07:00 / 19:00 | Recurrence schedule objects (`hours` / `minutes` / `weekDays`). |
 | `autoStopRecurrenceMinutes` | `15` | How often the AutoStop workflow scans. |
 | `targetSubscriptionIds` | Current subscription | Resource Graph search scope. |
+| `targetResourceGroups` | `[]` (all RGs in scope) | Optional array of RG **names** to restrict the search to (case-insensitive). Equivalent to `targetResourceGroups` on the VM Logic Apps. Example: `[ "rg-prod-vmss", "rg-dev-vmss" ]`. |
 | `tagName` | `StartStopV2_VMSS` | Tag key on VMSS that opts them in. |
 | `assignRbac` | `true` | If false, no role assignments are created — grant the workflow MIs `Virtual Machine Contributor` manually at the right scope. |
 | `logicAppState` | `Disabled` | Set to `Enabled` once tested. |
