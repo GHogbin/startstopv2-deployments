@@ -38,6 +38,11 @@
       "defaultValue": [ "[subscription().subscriptionId]" ],
       "metadata": { "description": "Subscription IDs (Resource Graph scope) to search for tagged VMSS." }
     },
+    "targetResourceGroups": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": { "description": "Optional. Resource group NAMES to restrict the search to (case-insensitive). Empty array = all RGs in the target subscriptions. Example: [ \"rg-prod-vmss\", \"rg-dev-vmss\" ]." }
+    },
     "tagName": {
       "type": "string",
       "defaultValue": "StartStopV2_VMSS",
@@ -61,7 +66,13 @@
     "armEndpoint": "https://management.azure.com",
     "argEndpoint": "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01",
     "vmContributorRoleId": "9980e02c-c2be-4d73-94e8-173b1dc7cf3c",
-    "vmContributorRoleDefId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', variables('vmContributorRoleId'))]"
+    "vmContributorRoleDefId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', variables('vmContributorRoleId'))]",
+    "rgFilterClause": "[if(empty(parameters('targetResourceGroups')), '', concat(' | where resourceGroup in~ ', replace(replace(string(parameters('targetResourceGroups')), '[', '('), ']', ')')))]",
+    "baseQuery": "resources | where type =~ 'microsoft.compute/virtualmachinescalesets'",
+    "projectClause": " | project id, name, resourceGroup, subscriptionId",
+    "queryStart":    "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) in~ (\"start\",\"both\")', variables('projectClause'))]",
+    "queryStop":     "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) in~ (\"stop\",\"both\")',  variables('projectClause'))]",
+    "queryAutoStop": "[concat(variables('baseQuery'), variables('rgFilterClause'), ' | where tostring(tags[\"', parameters('tagName'), '\"]) =~ \"autostop\"',                variables('projectClause'))]"
   },
   "resources": [
     {
@@ -104,7 +115,7 @@
                 "authentication": { "type": "ManagedServiceIdentity", "audience": "@parameters('armEndpoint')" },
                 "body": {
                   "subscriptions": "@parameters('subscriptionIds')",
-                  "query": "resources | where type =~ 'microsoft.compute/virtualmachinescalesets' | where tostring(tags[parameters('tagName')]) in~ ('start','both') | project id, name, resourceGroup, subscriptionId"
+                  "query": "[variables('queryStart')]"
                 }
               }
             },
@@ -167,7 +178,7 @@
                 "authentication": { "type": "ManagedServiceIdentity", "audience": "@parameters('armEndpoint')" },
                 "body": {
                   "subscriptions": "@parameters('subscriptionIds')",
-                  "query": "resources | where type =~ 'microsoft.compute/virtualmachinescalesets' | where tostring(tags[parameters('tagName')]) in~ ('stop','both') | project id, name, resourceGroup, subscriptionId"
+                  "query": "[variables('queryStop')]"
                 }
               }
             },
@@ -227,7 +238,7 @@
                 "authentication": { "type": "ManagedServiceIdentity", "audience": "@parameters('armEndpoint')" },
                 "body": {
                   "subscriptions": "@parameters('subscriptionIds')",
-                  "query": "resources | where type =~ 'microsoft.compute/virtualmachinescalesets' | where tostring(tags[parameters('tagName')]) =~ 'autostop' | project id, name, resourceGroup, subscriptionId"
+                  "query": "[variables('queryAutoStop')]"
                 }
               }
             },
