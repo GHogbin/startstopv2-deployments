@@ -834,7 +834,7 @@
                   "settings": {
                     "content": {
                       "settings": {
-                        "content": "## VMSS Schedulers\nOptional Logic App based schedulers for Virtual Machine Scale Sets (deployed via `LogicApps.Vmss.json`).",
+                        "content": "## VMSS Schedulers\nOptional Logic App based schedulers for Virtual Machine Scale Sets (deployed via `LogicApps.Vmss.json`). Charts below show Azure Monitor `RunsSucceeded` / `RunsFailed` metrics for the four `ststv2_vmss_*` workflows.",
                         "title": "",
                         "subtitle": "",
                         "markdownSource": 1
@@ -851,15 +851,105 @@
                   "rowSpan": 4
                 },
                 "metadata": {
-                  "inputs": [],
-                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "inputs": [
+                    {
+                      "name": "options",
+                      "value": {
+                        "chart": {
+                          "metrics": [
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_start')]"
+                              },
+                              "name": "RunsSucceeded",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Succeeded",
+                                "resourceDisplayName": "ststv2_vmss_Scheduled_start"
+                              }
+                            },
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_stop')]"
+                              },
+                              "name": "RunsSucceeded",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Succeeded",
+                                "resourceDisplayName": "ststv2_vmss_Scheduled_stop"
+                              }
+                            },
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_scaleto1')]"
+                              },
+                              "name": "RunsSucceeded",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Succeeded",
+                                "resourceDisplayName": "ststv2_vmss_Scheduled_scaleto1"
+                              }
+                            },
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop')]"
+                              },
+                              "name": "RunsSucceeded",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Succeeded",
+                                "resourceDisplayName": "ststv2_vmss_AutoStop"
+                              }
+                            }
+                          ],
+                          "title": "Sum Runs Succeeded for VMSS workflows",
+                          "titleKind": 2,
+                          "visualization": {
+                            "chartType": 2,
+                            "legendVisualization": {
+                              "isVisible": true,
+                              "position": 2,
+                              "hideSubtitle": false
+                            },
+                            "axisVisualization": {
+                              "x": { "isVisible": true, "axisType": 2 },
+                              "y": { "isVisible": true, "axisType": 1 }
+                            },
+                            "disablePinning": true
+                          },
+                          "timespan": {
+                            "relative": { "duration": 86400000 },
+                            "showUTCTime": false,
+                            "grain": 300000
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "isOptional": true
+                    }
+                  ],
+                  "type": "Extension/HubsExtension/PartType/MonitorChartPart",
                   "settings": {
                     "content": {
-                      "settings": {
-                        "content": "**Required VMSS tags**\n\n| Tag key | Value | Action |\n|---|---|---|\n| `StartStopV2_VMSS` | `start` | Start on schedule |\n| `StartStopV2_VMSS` | `stop` | Deallocate on schedule |\n| `StartStopV2_VMSS` | `both` | Start + Stop |\n| `StartStopV2_VMSS` | `autostop` | AutoStop when idle |\n| `StartStopV2_VMSS_Scale` | `scaleto1` | Scale capacity to 1 on schedule |\n\nA VMSS can carry both tags (e.g. `StartStopV2_VMSS=both` and `StartStopV2_VMSS_Scale=scaleto1`).\n\nThe four Logic App workflows live in this resource group. They are deployed **Disabled** by default — enable them in the portal once you have tagged your target VMSS.",
-                        "title": "VMSS tagging reference",
-                        "subtitle": "",
-                        "markdownSource": 1
+                      "options": {
+                        "chart": {
+                          "title": "Runs Succeeded — VMSS workflows",
+                          "titleKind": 1,
+                          "visualization": {
+                            "chartType": 2,
+                            "legendVisualization": {
+                              "isVisible": true,
+                              "position": 2,
+                              "hideSubtitle": false
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -873,13 +963,125 @@
                   "rowSpan": 4
                 },
                 "metadata": {
+                  "inputs": [
+                    {
+                      "name": "options",
+                      "value": {
+                        "chart": {
+                          "metrics": [
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_start')]"
+                              },
+                              "name": "RunsFailed",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Failed",
+                                "resourceDisplayName": "ststv2_vmss_Scheduled_start"
+                              }
+                            },
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_stop')]"
+                              },
+                              "name": "RunsFailed",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Failed",
+                                "resourceDisplayName": "ststv2_vmss_Scheduled_stop"
+                              }
+                            },
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_scaleto1')]"
+                              },
+                              "name": "RunsFailed",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Failed",
+                                "resourceDisplayName": "ststv2_vmss_Scheduled_scaleto1"
+                              }
+                            },
+                            {
+                              "resourceMetadata": {
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop')]"
+                              },
+                              "name": "RunsFailed",
+                              "aggregationType": 7,
+                              "namespace": "microsoft.logic/workflows",
+                              "metricVisualization": {
+                                "displayName": "Runs Failed",
+                                "resourceDisplayName": "ststv2_vmss_AutoStop"
+                              }
+                            }
+                          ],
+                          "title": "Sum Runs Failed for VMSS workflows",
+                          "titleKind": 2,
+                          "visualization": {
+                            "chartType": 3,
+                            "legendVisualization": {
+                              "isVisible": true,
+                              "position": 2,
+                              "hideSubtitle": false
+                            },
+                            "axisVisualization": {
+                              "x": { "isVisible": true, "axisType": 2 },
+                              "y": { "isVisible": true, "axisType": 1 }
+                            },
+                            "disablePinning": true
+                          },
+                          "timespan": {
+                            "relative": { "duration": 86400000 },
+                            "showUTCTime": false,
+                            "grain": 300000
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "isOptional": true
+                    }
+                  ],
+                  "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+                  "settings": {
+                    "content": {
+                      "options": {
+                        "chart": {
+                          "title": "Runs Failed — VMSS workflows",
+                          "titleKind": 1,
+                          "visualization": {
+                            "chartType": 3,
+                            "legendVisualization": {
+                              "isVisible": true,
+                              "position": 2,
+                              "hideSubtitle": false
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "11": {
+                "position": {
+                  "x": 0,
+                  "y": 17,
+                  "colSpan": 13,
+                  "rowSpan": 3
+                },
+                "metadata": {
                   "inputs": [],
                   "type": "Extension/HubsExtension/PartType/MarkdownPart",
                   "settings": {
                     "content": {
                       "settings": {
-                        "content": "[concat('**VMSS Logic App workflows**  \nResource Group: `', resourceGroup().name, '`\n\n| Workflow | Run history |\n|---|---|\n| `ststv2_vmss_Scheduled_start` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_start/runs) |\n| `ststv2_vmss_Scheduled_stop` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_stop/runs) |\n| `ststv2_vmss_Scheduled_scaleto1` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_scaleto1/runs) |\n| `ststv2_vmss_AutoStop` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop/runs) |\n\nEach workflow uses a SystemAssigned managed identity that must have **Virtual Machine Contributor** on the resource groups containing the target VMSS.')]",
-                        "title": "Logic App run history",
+                        "content": "[concat('**VMSS workflow tag reference & run history**\n\n| Workflow | Required tag | Run history |\n|---|---|---|\n| `ststv2_vmss_Scheduled_start` | `StartStopV2_VMSS` = `start` or `both` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_start/runs) |\n| `ststv2_vmss_Scheduled_stop` | `StartStopV2_VMSS` = `stop` or `both` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_stop/runs) |\n| `ststv2_vmss_Scheduled_scaleto1` | `StartStopV2_VMSS_Scale` = `scaleto1` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_Scheduled_scaleto1/runs) |\n| `ststv2_vmss_AutoStop` | `StartStopV2_VMSS` = `autostop` | [Open](https://portal.azure.com/#@/resource/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Logic/workflows/ststv2_vmss_AutoStop/runs) |')]",
+                        "title": "VMSS workflow reference",
                         "subtitle": "",
                         "markdownSource": 1
                       }
